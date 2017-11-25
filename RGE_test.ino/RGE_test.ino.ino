@@ -2,14 +2,16 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid  = WIFI_SSID;
-const char* password  = WIFI_PASS;
+const char* ssid  = "AndroidAP";
+const char* password  = "beebort1";
 
 const char* host = "hamraffl.es";
-const int port = 70;
+const int port = 71;
 
 const unsigned int rows = 13;
 const unsigned int columns = 26;
+
+const int ledPin = 32;
 
 const int refreshRate(600000);
 
@@ -22,115 +24,36 @@ const int refreshRate(600000);
 #endif
 
 strand_t STRANDS[] = {
-  { .rmtChannel = 0, .gpioNum = 17, .ledType = LED_WS2812B_V3, .brightLimit = 32, .numPixels = 338,
+  { .rmtChannel = 0, .gpioNum = ledPin, .ledType = LED_WS2812B_V3, .brightLimit = 32, .numPixels = 338,
     .pixels = nullptr, ._stateVars = nullptr
   }
 };
 int STRANDCNT = 1;
 
-class Scannerer {
-  private:
-    strand_t * pStrand;
-    pixelColor_t minColor;
-    pixelColor_t maxColor;
-    int prevIdx;
-    int currIdx;
-  public:
-    Scannerer(strand_t *, pixelColor_t);
-    void drawNext();
-};
-
-Scannerer::Scannerer(strand_t * pStrandIn, pixelColor_t maxColorIn)
-{
-  pStrand = pStrandIn;
-  minColor = pixelFromRGBW(0, 0, 0, 0);
-  maxColor = maxColorIn;
-  prevIdx = 0;
-  currIdx = 0;
-}
-
-/*void Scannerer::drawNext()
-{
-  pStrand->pixels[prevIdx] = minColor;
-  pStrand->pixels[currIdx] = maxColor;
-  digitalLeds_updatePixels(pStrand);
-  prevIdx = currIdx;
-  currIdx++;
-  if (currIdx >= pStrand->numPixels) {
-    currIdx = 0;
-  }
-}
-
-void scanners(strand_t * strands[], int numStrands, unsigned long delay_ms, unsigned long timeout_ms)
-{
-  //Scannerer scan(pStrand); Scannerer * pScanner = &scan;
-  Scannerer * pScanner[numStrands];
-  int i;
-  uint8_t c = strands[0]->brightLimit; // TODO: improve
-  pixelColor_t scanColors [] = {
-    pixelFromRGBW(c, 0, 0, 0),
-    pixelFromRGBW(0, c, 0, 0),
-    pixelFromRGBW(c, c, 0, 0),
-    pixelFromRGBW(0, 0, c, 0),
-    pixelFromRGBW(c, 0, c, 0),
-    pixelFromRGBW(0, c, c, 0),
-    pixelFromRGBW(c, c, c, 0),
-    pixelFromRGBW(0, 0, 0, c),
-  };
-  Serial.print("DEMO: scanners(");
-  for (i = 0; i < numStrands; i++) {
-    pScanner[i] = new Scannerer(strands[i], scanColors[i]);
-    if (i > 0) {
-      Serial.print(", ");
-    }
-    Serial.print("ch");
-    Serial.print(strands[i]->rmtChannel);
-    Serial.print(" (0x");
-    Serial.print((uint32_t)pScanner[i], HEX);
-    Serial.print(")");
-    Serial.print(" #");
-    Serial.print((uint32_t)scanColors[i].num, HEX);
-  }
-  Serial.print(")");
-  Serial.println();
-  unsigned long start_ms = millis();
-  while (timeout_ms == 0 || (millis() - start_ms < timeout_ms)) {
-    for (i = 0; i < numStrands; i++) {
-      pScanner[i]->drawNext();
-    }
-    delay(delay_ms);
-  }
-  for (i = 0; i < numStrands; i++) {
-    delete pScanner[i];
-    digitalLeds_resetPixels(strands[i]);
-  }
-}
-
-void scanner(strand_t * pStrand, unsigned long delay_ms, unsigned long timeout_ms)
-{
-  strand_t * strands [] = { pStrand };
-  scanners(strands, 1, delay_ms, timeout_ms);
-}
-*/
-
 void setup() {
+  gpioSetup(25, OUTPUT, LOW);
   delay(500);
   Serial.begin(115200);
   Serial.println("Initializing...");
 
   WiFi.begin(ssid, password);
+  int state = 0;
 
   while (WiFi.status() != WL_CONNECTED) {
+    digitalWrite(25, (state) ? HIGH : LOW);
+    state = !state;
     delay(500);
     Serial.print(".");
   }
+
+  digitalWrite(25, HIGH);
 
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  gpioSetup(17, OUTPUT, LOW);
+  gpioSetup(ledPin, OUTPUT, LOW);
   Serial.println("GPIO Setup Complete");
   if (digitalLeds_initStrands(STRANDS, STRANDCNT)) {
     Serial.println("Init FAILURE: halting");
@@ -175,9 +98,10 @@ void loop() {
         String dataString = http.getString();
         Serial.println( "dataString = ");
         Serial.println(dataString);
+        Serial.println(dataString.length());
         char charArray[dataString.length()];
         dataString.toCharArray(charArray, dataString.length());
-        int numbers[rows * columns];
+        int numbers[rows * columns] = { 0 };
         int curNum = 0;
         char *tok = strtok(charArray, " ");
         while (tok) {
@@ -190,41 +114,45 @@ void loop() {
           tok = strtok(NULL, " ");
         }
 
-        int fixedNumbers[rows * columns] = { 0 };
+        //int fixedNumbers[rows * columns] = { 0 };
 
 
         // Remap the order of every other row, cause I'm dumb and soldered backwards
-        for (int i = 0; i < rows; i++) {
+        /*for (int i = 0; i < rows; i++) {
           for (int j = 0; j < columns; j++) {
             if (i == 0 || i % 2 == 0) {
               fixedNumbers[(i * columns) + j] = numbers[(i * columns) + (columns - j)];
-              /*Serial.print(i * (columns) + j);
+              Serial.print(i * (columns) + j);
                 Serial.print(" Value: ");
                 Serial.print(numbers[i * (columns - j)]);
                 Serial.print(" maps to ");
                 Serial.println((i * columns) + (columns - j));
-              */
+              
             }
             else {
               fixedNumbers[(i * columns) + j] = numbers[(i * columns) + j];
-              /*Serial.print(i * (columns) + j);
+              Serial.print(i * (columns) + j);
                 Serial.print(" Value: ");
                 Serial.print(numbers[i * (columns - j)]);
                 Serial.print(" maps to ");
                 Serial.println((i * columns) + j);
-              */
+              
             }
           }
-        }
+        }*/
         digitalLeds_resetPixels(strands[0]);
-        for (int i = 0; i <= (rows * columns); i++) {
-          strands[0]->pixels[i-1] = pixelFromRGBW(0, 0, 0, 0);
-          strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
-          digitalLeds_updatePixels(strands[0]);
-          
-
+        for (int i = 0; i <= (338); i++) {
+          //strands[0]->pixels[i-1] = pixelFromRGBW(0, 0, 0, 0);
+          if (numbers[i] > 0) {
+            strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
+            Serial.print("Lighting pin ");
+            Serial.println(i);
           }
-
+          else {
+            strands[0]->pixels[i] = pixelFromRGBW(0, 0, 0, 0);
+          }
+          }
+          digitalLeds_updatePixels(strands[0]);
 
         }
       }
