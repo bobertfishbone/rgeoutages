@@ -16,7 +16,7 @@ const unsigned int columns = 26;
 
 const int ledPin = 32;
 
-const int refreshRate(600000);
+const int refreshRate(300000);
 
 #if defined(ARDUINO) && ARDUINO >= 100
 // No extras
@@ -123,7 +123,7 @@ void loop() {
           if (numbers[i] > 0) {
             //strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
             strands[0]->pixels[i] = colorPicker(numbers[i]);
-            strands[0]->pixels[1] = colorPicker(5);
+            /*strands[0]->pixels[1] = colorPicker(5);
             strands[0]->pixels[2] = colorPicker(15);
             strands[0]->pixels[3] = colorPicker(25);
             strands[0]->pixels[4] = colorPicker(35);
@@ -131,7 +131,7 @@ void loop() {
             strands[0]->pixels[6] = colorPicker(55);
             strands[0]->pixels[7] = colorPicker(65);
             strands[0]->pixels[8] = colorPicker(75);
-            strands[0]->pixels[9] = colorPicker(85);
+            strands[0]->pixels[9] = colorPicker(85);*/
             Serial.print("Lighting pin ");
             Serial.println(i);
           }
