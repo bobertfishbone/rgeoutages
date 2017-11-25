@@ -122,7 +122,16 @@ void loop() {
           //strands[0]->pixels[i-1] = pixelFromRGBW(0, 0, 0, 0);
           if (numbers[i] > 0) {
             //strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
-            strands[0]->pixels[i] = colorPicker(100);
+            strands[0]->pixels[i] = colorPicker(numbers[i]);
+            strands[0]->pixels[1] = colorPicker(5);
+            strands[0]->pixels[2] = colorPicker(15);
+            strands[0]->pixels[3] = colorPicker(25);
+            strands[0]->pixels[4] = colorPicker(35);
+            strands[0]->pixels[5] = colorPicker(45);
+            strands[0]->pixels[6] = colorPicker(55);
+            strands[0]->pixels[7] = colorPicker(65);
+            strands[0]->pixels[8] = colorPicker(75);
+            strands[0]->pixels[9] = colorPicker(85);
             Serial.print("Lighting pin ");
             Serial.println(i);
           }
@@ -164,14 +173,63 @@ void loop() {
 #endif
   }
 
-pixelColor_t colorPicker(int customersOut){
+pixelColor_t colorPicker(int percent){
   pixelColor_t v;
-  v.r = 32;
-  v.g = 200;
-  v.b = 0;
-  v.w = 0;
-
-
+  if (percent > 0 && percent < 10) {
+    v.r = 0;
+    v.g = 0;
+    v.b = 64;
+    v.w = 0;
+  }
+  else if (percent >= 10 && percent < 20) {
+    v.r = 0;
+    v.g = 64;
+    v.b = 64;
+    v.w = 0;
+  }
+  else if (percent >= 20 && percent < 30) {
+    v.r = 0;
+    v.g = 128;
+    v.b = 64;
+    v.w = 0;
+  }
+  else if (percent >= 30 && percent < 40) {
+    v.r = 32;
+    v.g = 64;
+    v.b = 64;
+    v.w = 0;
+  }
+  else if (percent >=40 && percent < 50) {
+    v.r = 64;
+    v.g = 64;
+    v.b = 64;
+    v.w = 0;
+  }
+  else if (percent >= 50 && percent < 60) {
+    v.r = 64;
+    v.g = 32;
+    v.b = 64;
+    v.w = 0;
+  }
+  else if (percent >= 60 && percent < 70) {
+    v.r = 64;
+    v.g = 32;
+    v.b = 32;
+    v.w = 0;
+  }
+  else if (percent >=70 && percent < 80) {
+    v.r = 64;
+    v.g = 32;
+    v.b = 0;
+    v.w = 0;
+  }
+  else if (percent > 80) {
+    v.r = 64;
+    v.g = 0;
+    v.b = 0;
+    v.w = 0;
+  }
+  
   return v; 
 }
 

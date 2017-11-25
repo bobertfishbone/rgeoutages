@@ -172,7 +172,15 @@ if __name__ == '__main__':
                             print ("Current Row: "+str(curRow))
                             print ("Current Column: "+str(curCol))
                             print ("Current LED: "+str(ledNum))
-                            array[ledNum] += streetdata['CustomersWithoutPower']
+                            outageCust = float(streetdata['CustomersWithoutPower'])
+                            totalCust = float(streetdata['TotalCustomers'])
+                            percentageOut = int(math.floor((outageCust/totalCust) * 100))
+
+                            if array[ledNum] > 0:
+                                array[ledNum] = (array[ledNum] + percentageOut) / 2
+                            else:
+                                array[ledNum] = percentageOut
+                                
                         streetCounter += 1
 
     
