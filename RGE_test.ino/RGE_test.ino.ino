@@ -2,11 +2,14 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid  = "AndroidAP";
-const char* password  = "beebort1";
+const char* ssid  = WIFI_SSID;
+const char* password  = WIFI_PASS;
+
+//const char* ssid = "AndroidAP";
+//const char* password = "beebort1";
 
 const char* host = "hamraffl.es";
-const int port = 71;
+const int port = 70;
 
 const unsigned int rows = 13;
 const unsigned int columns = 26;
@@ -43,7 +46,7 @@ void setup() {
     digitalWrite(25, (state) ? HIGH : LOW);
     state = !state;
     delay(500);
-    Serial.print(".");
+    Serial.println(WiFi.status());
   }
 
   digitalWrite(25, HIGH);
@@ -90,8 +93,9 @@ void loop() {
 
     int httpCode = http.GET();
     Serial.println("Got a page!");
+    Serial.println(httpCode);
     if (httpCode > 0) {
-      //Serial.println("[HTTP] GET... code: "+httpCode);
+      Serial.println("[HTTP] GET... code: "+httpCode);
 
       if (httpCode == HTTP_CODE_OK) {
 
@@ -113,38 +117,12 @@ void loop() {
           curNum++;
           tok = strtok(NULL, " ");
         }
-
-        //int fixedNumbers[rows * columns] = { 0 };
-
-
-        // Remap the order of every other row, cause I'm dumb and soldered backwards
-        /*for (int i = 0; i < rows; i++) {
-          for (int j = 0; j < columns; j++) {
-            if (i == 0 || i % 2 == 0) {
-              fixedNumbers[(i * columns) + j] = numbers[(i * columns) + (columns - j)];
-              Serial.print(i * (columns) + j);
-                Serial.print(" Value: ");
-                Serial.print(numbers[i * (columns - j)]);
-                Serial.print(" maps to ");
-                Serial.println((i * columns) + (columns - j));
-              
-            }
-            else {
-              fixedNumbers[(i * columns) + j] = numbers[(i * columns) + j];
-              Serial.print(i * (columns) + j);
-                Serial.print(" Value: ");
-                Serial.print(numbers[i * (columns - j)]);
-                Serial.print(" maps to ");
-                Serial.println((i * columns) + j);
-              
-            }
-          }
-        }*/
         digitalLeds_resetPixels(strands[0]);
-        for (int i = 0; i <= (338); i++) {
+        for (int i = 0; i < (sizeof(numbers) / sizeof(int)); i++) {
           //strands[0]->pixels[i-1] = pixelFromRGBW(0, 0, 0, 0);
           if (numbers[i] > 0) {
-            strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
+            //strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
+            strands[0]->pixels[i] = colorPicker(100);
             Serial.print("Lighting pin ");
             Serial.println(i);
           }
@@ -185,3 +163,16 @@ void loop() {
     gpio_set_level(gpioNumNative, gpioVal);
 #endif
   }
+
+pixelColor_t colorPicker(int customersOut){
+  pixelColor_t v;
+  v.r = 32;
+  v.g = 200;
+  v.b = 0;
+  v.w = 0;
+
+
+  return v; 
+}
+
+
