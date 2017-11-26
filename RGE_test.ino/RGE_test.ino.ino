@@ -1,6 +1,20 @@
 #include "esp32_digital_led_lib.h"
-#include <WiFi.h>
+#include <WiFiUdp.h>
 #include <HTTPClient.h>
+#include <ESPmDNS.h>
+#include <ArduinoOTA.h>
+
+
+hw_timer_t * timer = NULL;
+
+volatile byte blinked = 0;
+volatile byte delayed = 0;
+volatile int blinks = 300;
+
+void IRAM_ATTR onTimer() {
+  delayed = !delayed;
+  blinked = 0;
+}
 
 const char* ssid  = WIFI_SSID;
 const char* password  = WIFI_PASS;
@@ -14,6 +28,9 @@ const unsigned int columns = 26;
 const int ledPin = 32;
 
 const int refreshRate(300000);
+
+unsigned int prevTime;
+unsigned long sincePrev = 0;
 
 #if defined(ARDUINO) && ARDUINO >= 100
 // No extras
@@ -29,11 +46,12 @@ strand_t STRANDS[] = {
   }
 };
 int STRANDCNT = 1;
+strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
 
 void setup() {
 
   delay(500);
-  Serial.begin(19200);
+  Serial.begin(115200);
   Serial.println("Initializing...");
 
 
@@ -47,29 +65,42 @@ void setup() {
   for (int i = 0; i < STRANDCNT; i++) {
     strand_t * pStrand = &STRANDS[i];
   }
-  strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
+  
   strands[0]->pixels[9] = pixelFromRGBW(255, 0, 0, 0);
   digitalLeds_updatePixels(strands[0]);
 
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 
-  int state = 0;
+  int attempts = 0;
   while (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(25, (state) ? HIGH : LOW);
-    state = !state;
-    delay(500);
-    Serial.println(WiFi.status());
+    if (attempts < 20) {
+      delay(500);
+      Serial.println(WiFi.status());
+    }
+    else {
+      ESP.restart();
+    }
+    attempts++;
   }
 
   strands[0]->pixels[9] = pixelFromRGBW(0, 255, 0, 0);
   digitalLeds_updatePixels(strands[0]);
 
-
+  arduinoOTAstuff();
 
   Serial.println("");
   Serial.println("WiFi connected");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
+
+  timer = timerBegin(0, 80, true);
+
+  timerAttachInterrupt(timer, &onTimer, true);
+
+  timerAlarmWrite(timer, 1000000, true);
+
+  timerAlarmEnable(timer);
 
   Serial.println("Init complete");
 }
@@ -78,76 +109,101 @@ void setup() {
 
 
 void loop() {
+  
+  if (!delayed) {
+    strands[0]->pixels[9] = pixelFromRGBW(0, 0, 0, 0);
+    digitalLeds_updatePixels(strands[0]);
+    if (blinks >= 300){
+    if (WiFi.status() == WL_CONNECTED) {
 
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
-    //Serial.println("Beginning!");
-    http.begin(host, port);
+      HTTPClient http;
+      strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
+      //Serial.println("Beginning!");
+      http.begin(host, port);
 
-    int httpCode = http.GET();
-    Serial.println("Got a page!");
-    Serial.println(httpCode);
-    if (httpCode > 0) {
-      Serial.println("[HTTP] GET... code: " + httpCode);
-
-      if (httpCode == HTTP_CODE_OK) {
-
-        String dataString = http.getString();
-        char charArray[dataString.length()];
-
-        dataString.toCharArray(charArray, dataString.length());
-
-        int numbers[rows * columns] = { 0 };
-        int curNum = 0;
-        char *tok = strtok(charArray, " ");
-
-        // Tokenize data from hamraffl.es
-        while (tok) {
-          numbers[curNum] = atoi(tok);
-          curNum++;
-          tok = strtok(NULL, " ");
-        }
-        digitalLeds_resetPixels(strands[0]);
-
-        for (int i = 0; i < columns; i++) {
-          if (i > 0) {
-            strands[0]->pixels[i - 1] = pixelFromRGBW(0, 0, 0, 0);
-          }
-          strands[0]->pixels[i] = pixelFromRGBW(0, 0, 100, 0);
-          digitalLeds_updatePixels(strands[0]);
-          //Serial.println(i);
-          delay(50);
-        }
-
-        digitalLeds_resetPixels(strands[0]);
-
-        for (int i = 0; i < (sizeof(numbers) / sizeof(int)); i++) {
-
-          if (numbers[i] > 0) {
-            strands[0]->pixels[i] = colorPicker(numbers[i]);
-          }
-          else {
-            strands[0]->pixels[i] = pixelFromRGBW(0, 0, 0, 0);
-          }
-        }
-        digitalLeds_updatePixels(strands[0]);
-
-      }
-    }
-    else {
-      Serial.print("GET FAILED!");
+      int httpCode = http.GET();
+      Serial.println("Got a page!");
       Serial.println(httpCode);
+      if (httpCode > 0) {
+        Serial.println("[HTTP] GET... code: " + httpCode);
+
+        if (httpCode == HTTP_CODE_OK) {
+
+          String dataString = http.getString();
+          char charArray[dataString.length()];
+
+          dataString.toCharArray(charArray, dataString.length());
+
+          int numbers[rows * columns] = { 0 };
+          int curNum = 0;
+          char *tok = strtok(charArray, " ");
+
+          // Tokenize data from hamraffl.es
+          while (tok) {
+            numbers[curNum] = atoi(tok);
+            curNum++;
+            tok = strtok(NULL, " ");
+          }
+          digitalLeds_resetPixels(strands[0]);
+
+          for (int i = 0; i < columns; i++) {
+            if (i > 0) {
+              strands[0]->pixels[i - 1] = pixelFromRGBW(0, 0, 0, 0);
+            }
+            strands[0]->pixels[i] = pixelFromRGBW(0, 0, 100, 0);
+            digitalLeds_updatePixels(strands[0]);
+            //Serial.println(i);
+            delay(50);
+          }
+
+          digitalLeds_resetPixels(strands[0]);
+
+          for (int i = 0; i < (sizeof(numbers) / sizeof(int)); i++) {
+
+            if (numbers[i] > 0) {
+              strands[0]->pixels[i] = colorPicker(numbers[i]);
+            }
+            else {
+              strands[0]->pixels[i] = pixelFromRGBW(0, 0, 0, 0);
+            }
+          }
+          digitalLeds_updatePixels(strands[0]);
+
+        }
+      }
+      else {
+        Serial.print("GET FAILED!");
+        Serial.println(httpCode);
+      }
+      http.end();
+      //delay(refreshRate);
+      blinks = 0;
     }
-    http.end();
-    delay(refreshRate);
+
+
+    else {
+      Serial.println("WiFi not connected!");
+      delay(refreshRate);
+    }
   }
-
-
   else {
-    Serial.println("WiFi not connected!");
-    delay(refreshRate);
+    
+    ArduinoOTA.handle();
+    
   }
+  }
+  else {
+    if (blinked == 0) {
+    strands[0]->pixels[9] = pixelFromRGBW(0, 0, 155, 0);
+    digitalLeds_updatePixels(strands[0]);
+    Serial.println(blinks);
+    blinks++;
+      
+      blinked = 1;
+    }
+
+  }
+  
 }
 
 
@@ -225,4 +281,33 @@ pixelColor_t colorPicker(int percent) {
   return v;
 }
 
+void arduinoOTAstuff(){
+    ArduinoOTA.onStart([]() {
+    
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH)
+      type = "sketch";
+    else // U_SPIFFS
+      type = "filesystem";
+
+    // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+    Serial.println("Start updating " + type);
+  });
+  ArduinoOTA.onEnd([]() {
+    Serial.println("\nEnd");
+  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError([](ota_error_t error) {
+    Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+    else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+  });
+  ArduinoOTA.begin();
+}
 
