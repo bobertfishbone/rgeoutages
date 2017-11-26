@@ -5,9 +5,6 @@
 const char* ssid  = WIFI_SSID;
 const char* password  = WIFI_PASS;
 
-//const char* ssid = "AndroidAP";
-//const char* password = "beebort1";
-
 const char* host = "hamraffl.es";
 const int port = 70;
 
@@ -34,7 +31,7 @@ strand_t STRANDS[] = {
 int STRANDCNT = 1;
 
 void setup() {
-  gpioSetup(25, OUTPUT, LOW);
+
   delay(500);
   Serial.begin(19200);
   Serial.println("Initializing...");
@@ -49,26 +46,14 @@ void setup() {
   }
   for (int i = 0; i < STRANDCNT; i++) {
     strand_t * pStrand = &STRANDS[i];
-    /*Serial.print("Strand ");
-      Serial.print(i);
-      Serial.print(" = ");
-      Serial.print((uint32_t)(pStrand->pixels), HEX);
-      Serial.println();*/
-#if DEBUG_ESP32_DIGITAL_LED_LIB
-    dumpDebugBuffer(-2, digitalLeds_debugBuffer);
-#endif
-    digitalLeds_resetPixels(pStrand);
-#if DEBUG_ESP32_DIGITAL_LED_LIB
-    dumpDebugBuffer(-1, digitalLeds_debugBuffer);
-#endif
   }
   strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
   strands[0]->pixels[9] = pixelFromRGBW(255, 0, 0, 0);
   digitalLeds_updatePixels(strands[0]);
 
   WiFi.begin(ssid, password);
-  int state = 0;
 
+  int state = 0;
   while (WiFi.status() != WL_CONNECTED) {
     digitalWrite(25, (state) ? HIGH : LOW);
     state = !state;
@@ -78,7 +63,8 @@ void setup() {
 
   strands[0]->pixels[9] = pixelFromRGBW(0, 255, 0, 0);
   digitalLeds_updatePixels(strands[0]);
-  digitalWrite(25, HIGH);
+
+
 
   Serial.println("");
   Serial.println("WiFi connected");
@@ -108,20 +94,17 @@ void loop() {
       if (httpCode == HTTP_CODE_OK) {
 
         String dataString = http.getString();
-        /*Serial.println( "dataString = ");
-          Serial.println(dataString);
-          Serial.println(dataString.length());*/
         char charArray[dataString.length()];
+
         dataString.toCharArray(charArray, dataString.length());
+
         int numbers[rows * columns] = { 0 };
         int curNum = 0;
         char *tok = strtok(charArray, " ");
+
+        // Tokenize data from hamraffl.es
         while (tok) {
           numbers[curNum] = atoi(tok);
-          /*Serial.print("Token ");
-            Serial.print(curNum);
-            Serial.print(": ");
-            Serial.println(tok);*/
           curNum++;
           tok = strtok(NULL, " ");
         }
@@ -137,22 +120,12 @@ void loop() {
           delay(50);
         }
 
+        digitalLeds_resetPixels(strands[0]);
+
         for (int i = 0; i < (sizeof(numbers) / sizeof(int)); i++) {
-          Serial.println("Checking a thing");
+
           if (numbers[i] > 0) {
-            //strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
             strands[0]->pixels[i] = colorPicker(numbers[i]);
-            /*strands[0]->pixels[1] = colorPicker(5);
-              strands[0]->pixels[2] = colorPicker(15);
-              strands[0]->pixels[3] = colorPicker(25);
-              strands[0]->pixels[4] = colorPicker(35);
-              strands[0]->pixels[5] = colorPicker(45);
-              strands[0]->pixels[6] = colorPicker(55);
-              strands[0]->pixels[7] = colorPicker(65);
-              strands[0]->pixels[8] = colorPicker(75);
-              strands[0]->pixels[9] = colorPicker(85);*/
-            Serial.print("Lighting pin ");
-            Serial.println(i);
           }
           else {
             strands[0]->pixels[i] = pixelFromRGBW(0, 0, 0, 0);
