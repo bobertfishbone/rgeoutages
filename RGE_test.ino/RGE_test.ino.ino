@@ -36,8 +36,35 @@ int STRANDCNT = 1;
 void setup() {
   gpioSetup(25, OUTPUT, LOW);
   delay(500);
-  Serial.begin(115200);
+  Serial.begin(19200);
   Serial.println("Initializing...");
+
+
+
+  gpioSetup(ledPin, OUTPUT, LOW);
+  Serial.println("GPIO Setup Complete");
+  if (digitalLeds_initStrands(STRANDS, STRANDCNT)) {
+    Serial.println("Init FAILURE: halting");
+    while (true) {};
+  }
+  for (int i = 0; i < STRANDCNT; i++) {
+    strand_t * pStrand = &STRANDS[i];
+    /*Serial.print("Strand ");
+      Serial.print(i);
+      Serial.print(" = ");
+      Serial.print((uint32_t)(pStrand->pixels), HEX);
+      Serial.println();*/
+#if DEBUG_ESP32_DIGITAL_LED_LIB
+    dumpDebugBuffer(-2, digitalLeds_debugBuffer);
+#endif
+    digitalLeds_resetPixels(pStrand);
+#if DEBUG_ESP32_DIGITAL_LED_LIB
+    dumpDebugBuffer(-1, digitalLeds_debugBuffer);
+#endif
+  }
+  strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
+  strands[0]->pixels[9] = pixelFromRGBW(255, 0, 0, 0);
+  digitalLeds_updatePixels(strands[0]);
 
   WiFi.begin(ssid, password);
   int state = 0;
@@ -49,6 +76,8 @@ void setup() {
     Serial.println(WiFi.status());
   }
 
+  strands[0]->pixels[9] = pixelFromRGBW(0, 255, 0, 0);
+  digitalLeds_updatePixels(strands[0]);
   digitalWrite(25, HIGH);
 
   Serial.println("");
@@ -56,27 +85,6 @@ void setup() {
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
 
-  gpioSetup(ledPin, OUTPUT, LOW);
-  Serial.println("GPIO Setup Complete");
-  if (digitalLeds_initStrands(STRANDS, STRANDCNT)) {
-    Serial.println("Init FAILURE: halting");
-    while (true) {};
-  }
-  for (int i = 0; i < STRANDCNT; i++) {
-    strand_t * pStrand = &STRANDS[i];
-    Serial.print("Strand ");
-    Serial.print(i);
-    Serial.print(" = ");
-    Serial.print((uint32_t)(pStrand->pixels), HEX);
-    Serial.println();
-#if DEBUG_ESP32_DIGITAL_LED_LIB
-    dumpDebugBuffer(-2, digitalLeds_debugBuffer);
-#endif
-    digitalLeds_resetPixels(pStrand);
-#if DEBUG_ESP32_DIGITAL_LED_LIB
-    dumpDebugBuffer(-1, digitalLeds_debugBuffer);
-#endif
-  }
   Serial.println("Init complete");
 }
 
@@ -95,14 +103,14 @@ void loop() {
     Serial.println("Got a page!");
     Serial.println(httpCode);
     if (httpCode > 0) {
-      Serial.println("[HTTP] GET... code: "+httpCode);
+      Serial.println("[HTTP] GET... code: " + httpCode);
 
       if (httpCode == HTTP_CODE_OK) {
 
         String dataString = http.getString();
-        Serial.println( "dataString = ");
-        Serial.println(dataString);
-        Serial.println(dataString.length());
+        /*Serial.println( "dataString = ");
+          Serial.println(dataString);
+          Serial.println(dataString.length());*/
         char charArray[dataString.length()];
         dataString.toCharArray(charArray, dataString.length());
         int numbers[rows * columns] = { 0 };
@@ -110,70 +118,81 @@ void loop() {
         char *tok = strtok(charArray, " ");
         while (tok) {
           numbers[curNum] = atoi(tok);
-          Serial.print("Token ");
-          Serial.print(curNum);
-          Serial.print(": ");
-          Serial.println(tok);
+          /*Serial.print("Token ");
+            Serial.print(curNum);
+            Serial.print(": ");
+            Serial.println(tok);*/
           curNum++;
           tok = strtok(NULL, " ");
         }
         digitalLeds_resetPixels(strands[0]);
+
+        for (int i = 0; i < columns; i++) {
+          if (i > 0) {
+            strands[0]->pixels[i - 1] = pixelFromRGBW(0, 0, 0, 0);
+          }
+          strands[0]->pixels[i] = pixelFromRGBW(0, 0, 100, 0);
+          digitalLeds_updatePixels(strands[0]);
+          //Serial.println(i);
+          delay(50);
+        }
+
         for (int i = 0; i < (sizeof(numbers) / sizeof(int)); i++) {
-          //strands[0]->pixels[i-1] = pixelFromRGBW(0, 0, 0, 0);
+          Serial.println("Checking a thing");
           if (numbers[i] > 0) {
             //strands[0]->pixels[i] = pixelFromRGBW(32, 0, 0, 0);
             strands[0]->pixels[i] = colorPicker(numbers[i]);
             /*strands[0]->pixels[1] = colorPicker(5);
-            strands[0]->pixels[2] = colorPicker(15);
-            strands[0]->pixels[3] = colorPicker(25);
-            strands[0]->pixels[4] = colorPicker(35);
-            strands[0]->pixels[5] = colorPicker(45);
-            strands[0]->pixels[6] = colorPicker(55);
-            strands[0]->pixels[7] = colorPicker(65);
-            strands[0]->pixels[8] = colorPicker(75);
-            strands[0]->pixels[9] = colorPicker(85);*/
+              strands[0]->pixels[2] = colorPicker(15);
+              strands[0]->pixels[3] = colorPicker(25);
+              strands[0]->pixels[4] = colorPicker(35);
+              strands[0]->pixels[5] = colorPicker(45);
+              strands[0]->pixels[6] = colorPicker(55);
+              strands[0]->pixels[7] = colorPicker(65);
+              strands[0]->pixels[8] = colorPicker(75);
+              strands[0]->pixels[9] = colorPicker(85);*/
             Serial.print("Lighting pin ");
             Serial.println(i);
           }
           else {
             strands[0]->pixels[i] = pixelFromRGBW(0, 0, 0, 0);
           }
-          }
-          digitalLeds_updatePixels(strands[0]);
-
         }
+        digitalLeds_updatePixels(strands[0]);
+
       }
-      else {
-        Serial.print("GET FAILED!");
-        Serial.println(httpCode);
-      }
-      http.end();
-      delay(refreshRate);
     }
-
-
     else {
-      Serial.println("WiFi not connected!");
-      delay(refreshRate);
+      Serial.print("GET FAILED!");
+      Serial.println(httpCode);
     }
+    http.end();
+    delay(refreshRate);
   }
 
 
+  else {
+    Serial.println("WiFi not connected!");
+    delay(refreshRate);
+  }
+}
 
-  void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
+
+
+void gpioSetup(int gpioNum, int gpioMode, int gpioVal) {
 #if defined(ARDUINO) && ARDUINO >= 100
-    pinMode (gpioNum, gpioMode);
-    digitalWrite (gpioNum, gpioVal);
+  pinMode (gpioNum, gpioMode);
+  digitalWrite (gpioNum, gpioVal);
 #elif defined(ESP_PLATFORM)
-    gpio_num_t gpioNumNative = static_cast<gpio_num_t>(gpioNum);
-    gpio_mode_t gpioModeNative = static_cast<gpio_mode_t>(gpioMode);
-    gpio_pad_select_gpio(gpioNumNative);
-    gpio_set_direction(gpioNumNative, gpioModeNative);
-    gpio_set_level(gpioNumNative, gpioVal);
+  gpio_num_t gpioNumNative = static_cast<gpio_num_t>(gpioNum);
+  gpio_mode_t gpioModeNative = static_cast<gpio_mode_t>(gpioMode);
+  gpio_pad_select_gpio(gpioNumNative);
+  gpio_set_direction(gpioNumNative, gpioModeNative);
+  gpio_set_level(gpioNumNative, gpioVal);
 #endif
-  }
+}
 
-pixelColor_t colorPicker(int percent){
+pixelColor_t colorPicker(int percent) {
   pixelColor_t v;
   if (percent > 0 && percent < 10) {
     v.r = 0;
@@ -199,7 +218,7 @@ pixelColor_t colorPicker(int percent){
     v.b = 64;
     v.w = 0;
   }
-  else if (percent >=40 && percent < 50) {
+  else if (percent >= 40 && percent < 50) {
     v.r = 64;
     v.g = 64;
     v.b = 64;
@@ -217,7 +236,7 @@ pixelColor_t colorPicker(int percent){
     v.b = 32;
     v.w = 0;
   }
-  else if (percent >=70 && percent < 80) {
+  else if (percent >= 70 && percent < 80) {
     v.r = 64;
     v.g = 32;
     v.b = 0;
@@ -229,8 +248,8 @@ pixelColor_t colorPicker(int percent){
     v.b = 0;
     v.w = 0;
   }
-  
-  return v; 
+
+  return v;
 }
 
 
