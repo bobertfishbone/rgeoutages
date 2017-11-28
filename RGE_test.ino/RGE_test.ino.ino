@@ -26,6 +26,7 @@ const unsigned int rows = 13;
 const unsigned int columns = 26;
 
 const int ledPin = 32;
+const int statusPin = 337;
 
 const int refreshRate(300000);
 
@@ -111,7 +112,7 @@ void setup() {
 void loop() {
   
   if (!delayed) {
-    strands[0]->pixels[9] = pixelFromRGBW(0, 0, 0, 0);
+    strands[0]->pixels[337] = pixelFromRGBW(0, 0, 0, 0);
     digitalLeds_updatePixels(strands[0]);
     if (blinks >= 300){
     if (WiFi.status() == WL_CONNECTED) {
@@ -194,7 +195,7 @@ void loop() {
   }
   else {
     if (blinked == 0) {
-    strands[0]->pixels[9] = pixelFromRGBW(0, 0, 155, 0);
+    strands[0]->pixels[337] = pixelFromRGBW(32, 32, 0, 0);
     digitalLeds_updatePixels(strands[0]);
     Serial.println(blinks);
     blinks++;
