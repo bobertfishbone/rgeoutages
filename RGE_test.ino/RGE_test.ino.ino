@@ -19,8 +19,8 @@ void IRAM_ATTR onTimer() {
 const char* ssid  = WIFI_SSID;
 const char* password  = WIFI_PASS;
 
-const char* host = "hamraffl.es";
-const int port = 70;
+const char* host = "hamraffl.es/rge";
+const int port = 80;
 
 const unsigned int rows = 13;
 const unsigned int columns = 26;

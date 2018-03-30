@@ -161,10 +161,10 @@ if __name__ == '__main__':
                             curCol = getColumn(longitude)
                             ledNum = 0
                             # Fix weird orientation cause I'm extra dumb at soldering
-                            #if curRow == 0 or curRow%2 == 0:
-                            ledNum = ((curRow - 1) * columns) + (columns - curCol)
-                            #else:
-                            #    ledNum = ((curRow - 1) * columns) + columns
+                            if curRow == 0 or curRow%2 == 0:
+                                ledNum = ((curRow - 1) * columns) + (columns - curCol)
+                            else:
+                                ledNum = ((curRow - 1) * columns) + columns
                             print ("Latitude: "+ str(streetinfo['latitude']))
                             print ("Latitude Minutes: "+str(latitude))
                             print ("Longitude: "+ str(streetinfo['longitude']))
@@ -172,7 +172,15 @@ if __name__ == '__main__':
                             print ("Current Row: "+str(curRow))
                             print ("Current Column: "+str(curCol))
                             print ("Current LED: "+str(ledNum))
-                            array[ledNum] += streetdata['CustomersWithoutPower']
+                            outageCust = float(streetdata['CustomersWithoutPower'])
+                            totalCust = float(streetdata['TotalCustomers'])
+                            percentageOut = int(math.floor((outageCust/totalCust) * 100))
+
+                            if array[ledNum] > 0:
+                                array[ledNum] = (array[ledNum] + percentageOut) / 2
+                            else:
+                                array[ledNum] = percentageOut
+                                
                         streetCounter += 1
 
     
