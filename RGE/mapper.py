@@ -17,6 +17,8 @@ min_long = {'degrees': -77, 'minutes': 49}
 rows = 13
 columns = 26
 
+globalTotalOut = 0;
+
 try:
     import json
 except:
@@ -173,6 +175,7 @@ if __name__ == '__main__':
                             print ("Current Column: "+str(curCol))
                             print ("Current LED: "+str(ledNum))
                             outageCust = float(streetdata['CustomersWithoutPower'])
+                            globalTotalOut += outageCust
                             totalCust = float(streetdata['TotalCustomers'])
                             percentageOut = int(math.floor((outageCust/totalCust) * 100))
 
@@ -186,7 +189,7 @@ if __name__ == '__main__':
     
     custlistfd = open('custlist.txt', 'w')
     custlistfd.write(' '.join(str(e) for e in array))
-    
+    custlistfd.write(' '+globalTotalOut)
     custlistfd.close()
     
 

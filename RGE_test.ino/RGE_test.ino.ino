@@ -19,7 +19,7 @@ void IRAM_ATTR onTimer() {
 const char* ssid  = WIFI_SSID;
 const char* password  = WIFI_PASS;
 
-const char* host = "hamraffl.es/rge";
+const char* host = "http://hamraffl.es/rge";
 const int port = 80;
 
 const unsigned int rows = 13;
@@ -120,7 +120,7 @@ void loop() {
       HTTPClient http;
       strand_t * strands [] = { &STRANDS[0], &STRANDS[1], &STRANDS[2], &STRANDS[3] };
       //Serial.println("Beginning!");
-      http.begin(host, port);
+      http.begin(host);
 
       int httpCode = http.GET();
       Serial.println("Got a page!");
@@ -132,7 +132,7 @@ void loop() {
 
           String dataString = http.getString();
           char charArray[dataString.length()];
-
+          //Serial.println(dataString);
           dataString.toCharArray(charArray, dataString.length());
 
           int numbers[rows * columns] = { 0 };
