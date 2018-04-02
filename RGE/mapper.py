@@ -17,7 +17,7 @@ min_long = {'degrees': -77, 'minutes': 49}
 rows = 13
 columns = 26
 
-globalTotalOut = 0;
+globalTotalOut = 99
 
 try:
     import json
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     array = []
     for i in range(columns * rows):
         array.append(0)
-
+    array.append(globalTotalOut)
     try:
         apikey = secrets.apikey
     except:
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     custlistfd.close()
     
 
-    for val in range(0, (rows * columns)):
+    for val in range(0, len(array)):
         sys.stdout.write(str(array[val])+" ")
 
 
