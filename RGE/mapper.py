@@ -189,7 +189,7 @@ if __name__ == '__main__':
     
     custlistfd = open('custlist.txt', 'w')
     custlistfd.write(' '.join(str(e) for e in array))
-    custlistfd.write(' '+globalTotalOut)
+    custlistfd.write(' '+str(globalTotalOut))
     custlistfd.close()
     
 
