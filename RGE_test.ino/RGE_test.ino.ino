@@ -135,7 +135,7 @@ void loop() {
           //Serial.println(dataString);
           dataString.toCharArray(charArray, dataString.length());
 
-          int numbers[rows * columns] = { 0 };
+          int numbers[(rows * columns) + 1] = { 0 };
           int curNum = 0;
           char *tok = strtok(charArray, " ");
 
@@ -145,6 +145,8 @@ void loop() {
             curNum++;
             tok = strtok(NULL, " ");
           }
+
+         
           digitalLeds_resetPixels(strands[0]);
 
           for (int i = 0; i < columns; i++) {
@@ -159,8 +161,10 @@ void loop() {
 
           digitalLeds_resetPixels(strands[0]);
 
-          for (int i = 0; i < (sizeof(numbers) / sizeof(int)); i++) {
-
+          for (int i = 0; i < (sizeof(numbers) / sizeof(int)) - 1; i++) {
+            Serial.print(i);
+            Serial.print(": ");
+            Serial.println(numbers[i]);
             if (numbers[i] > 0) {
               strands[0]->pixels[i] = colorPicker(numbers[i]);
             }
@@ -169,6 +173,7 @@ void loop() {
             }
           }
           digitalLeds_updatePixels(strands[0]);
+          Serial.println(numbers[338]);
 
         }
       }
