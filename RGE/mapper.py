@@ -46,26 +46,28 @@ def fetchGeocode(location):
     jsondict = json.load(response)
 
     if jsondict['results'] == []:
-        raise Exception("Empty results string: " + jsondict['status'])
+        jsondict['results'] == [""]
+        #raise Exception("Empty results string: " + jsondict['status'])
 
-    data = jsondict['results'][0]
+    if jsondict['results'] != []:
+        data = jsondict['results'][0]
     
-    viewport = (    data['geometry']['viewport']['southwest']['lat'],
-                    data['geometry']['viewport']['southwest']['lng'],
-                    data['geometry']['viewport']['northeast']['lat'],
-                    data['geometry']['viewport']['northeast']['lng']    )
-    outdict = { 'formattedaddress': data['formatted_address'],
-                'latitude': data['geometry']['location']['lat'],
-                'longitude': data['geometry']['location']['lng'],
-                'locationtype': data['geometry']['location_type'],
-                'viewport': viewport    }
+        viewport = (    data['geometry']['viewport']['southwest']['lat'],
+                        data['geometry']['viewport']['southwest']['lng'],
+                        data['geometry']['viewport']['northeast']['lat'],
+                        data['geometry']['viewport']['northeast']['lng']    )
+        outdict = { 'formattedaddress': data['formatted_address'],
+                    'latitude': data['geometry']['location']['lat'],
+                    'longitude': data['geometry']['location']['lng'],
+                    'locationtype': data['geometry']['location_type'],
+                    'viewport': viewport    }
 
-    newdict = {'latitude': data['geometry']['location']['lat'],
-                'longitude': data['geometry']['location']['lng']}
+        newdict = {'latitude': data['geometry']['location']['lat'],
+                    'longitude': data['geometry']['location']['lng']}
 
-    time.sleep(1)
+        time.sleep(1)
 
-    return newdict
+        return newdict
 
 def geocode(town, location, street):
     """Geocodes a location, either using the cache or the Google.
@@ -153,43 +155,44 @@ if __name__ == '__main__':
                     for street, streetdata in streets.items():
                         print streetCounter
                         streetinfo = geocode(town, location, street)
-                        latitude = tominutes(streetinfo['latitude'])
-                        longitude = tominutes(streetinfo['longitude'])
-                        # Convert minutes from coordinates to 
-                        # row/column on the 
-                        if latitude >= min_lat['minutes'] and latitude <= max_lat['minutes'] \
-                        and longitude >= max_long['minutes'] and longitude <= min_long['minutes']:
-                            curRow = getRow(latitude)
-                            curCol = getColumn(longitude)
-                            ledNum = 0
-                            # Fix weird orientation cause I'm extra dumb at soldering
-                            if curRow == 0 or curRow%2 == 0:
-                                ledNum = ((curRow - 1) * columns) + (columns - curCol)
-                            else:
-                                ledNum = ((curRow - 1) * columns) + columns
-                            print ("Latitude: "+ str(streetinfo['latitude']))
-                            print ("Latitude Minutes: "+str(latitude))
-                            print ("Longitude: "+ str(streetinfo['longitude']))
-                            print ("Longitude Minutes: "+str(longitude))
-                            print ("Current Row: "+str(curRow))
-                            print ("Current Column: "+str(curCol))
-                            print ("Current LED: "+str(ledNum))
-                            outageCust = float(streetdata['CustomersWithoutPower'])
-                            globalTotalOut += outageCust
-                            totalCust = float(streetdata['TotalCustomers'])
-                            percentageOut = int(math.floor((outageCust/totalCust) * 100))
+                        if streetinfo is not None:
+                            latitude = tominutes(streetinfo['latitude'])
+                            longitude = tominutes(streetinfo['longitude'])
+                            # Convert minutes from coordinates to 
+                            # row/column on the 
+                            if latitude >= min_lat['minutes'] and latitude <= max_lat['minutes'] \
+                            and longitude >= max_long['minutes'] and longitude <= min_long['minutes']:
+                                curRow = getRow(latitude)
+                                curCol = getColumn(longitude)
+                                ledNum = 0
+                                # Fix weird orientation cause I'm extra dumb at soldering
+                                if curRow == 0 or curRow%2 == 0:
+                                    ledNum = ((curRow - 1) * columns) + (columns - curCol)
+                                else:
+                                    ledNum = ((curRow - 1) * columns) + columns
+                                print ("Latitude: "+ str(streetinfo['latitude']))
+                                print ("Latitude Minutes: "+str(latitude))
+                                print ("Longitude: "+ str(streetinfo['longitude']))
+                                print ("Longitude Minutes: "+str(longitude))
+                                print ("Current Row: "+str(curRow))
+                                print ("Current Column: "+str(curCol))
+                                print ("Current LED: "+str(ledNum))
+                                outageCust = float(streetdata['CustomersWithoutPower'])
+                                globalTotalOut += outageCust
+                                totalCust = float(streetdata['TotalCustomers'])
+                                percentageOut = int(math.floor((outageCust/totalCust) * 100))
 
-                            if array[ledNum] > 0:
-                                array[ledNum] = (array[ledNum] + percentageOut) / 2
-                            else:
-                                array[ledNum] = percentageOut
+                                if array[ledNum] > 0:
+                                    array[ledNum] = (array[ledNum] + percentageOut) / 2
+                                else:
+                                    array[ledNum] = percentageOut
                                 
                         streetCounter += 1
 
     
     custlistfd = open('custlist.txt', 'w')
     custlistfd.write(' '.join(str(e) for e in array))
-    custlistfd.write(' '+str(globalTotalOut)+' ')
+    custlistfd.write(' '+str(int(globalTotalOut))+' ')
     custlistfd.close()
     
 
