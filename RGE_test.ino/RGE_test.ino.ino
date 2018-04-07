@@ -174,7 +174,15 @@ void loop() {
           }
           digitalLeds_updatePixels(strands[0]);
           Serial.println(numbers[338]);
-
+          unsigned int thousands = (numbers[338] / 1000U  % 10);
+          unsigned int hundreds = (numbers[338] / 100U % 10);
+          unsigned int tens = (numbers[338] / 10U % 10 );
+          unsigned int ones = (numbers[338] / 1U % 10);
+          Serial.println(thousands);
+          Serial.println(hundreds);
+          Serial.println(tens);
+          Serial.println(ones);
+          nixieLighter(thousands, hundreds, tens, ones);
         }
       }
       else {
@@ -315,5 +323,10 @@ void arduinoOTAstuff(){
     else if (error == OTA_END_ERROR) Serial.println("End Failed");
   });
   ArduinoOTA.begin();
+}
+
+void nixieLighter(unsigned int thousands, unsigned int hundreds, unsigned int tens, unsigned int ones) {
+
+
 }
 

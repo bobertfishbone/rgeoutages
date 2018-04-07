@@ -9,6 +9,11 @@ import urllib2
 
 from datetime import datetime
 
+import sqlite3
+conn = sqlite3.connect('rge.db')
+c = conn.cursor()
+
+
 min_lat = {'degrees': 43, 'minutes': 2}
 max_long = {'degrees': -77, 'minutes': 24}
 max_lat = {'degrees': 43, 'minutes': 15}
@@ -17,7 +22,7 @@ min_long = {'degrees': -77, 'minutes': 49}
 rows = 13
 columns = 26
 
-globalTotalOut = 2345
+globalTotalOut = 0
 
 try:
     import json
@@ -32,7 +37,7 @@ except:
 
 import scrape_rge
 
-def fetchGeocode(location):
+def fetchGeocode(location, town, street):
     """Fetches geocoding information.
 
     Returns dictionary of formattedaddress, latitude, longitude,
@@ -44,7 +49,7 @@ def fetchGeocode(location):
     response = urllib2.urlopen("https://maps.googleapis.com/maps/api/geocode/json?address=%s&key=%s&sensor=false" % (sanelocation, apikey))
 
     jsondict = json.load(response)
-
+    #print (response[1])
     if jsondict['results'] == []:
         jsondict['results'] == [""]
         #raise Exception("Empty results string: " + jsondict['status'])
@@ -67,6 +72,8 @@ def fetchGeocode(location):
 
         time.sleep(1)
 
+        c.execute('''INSERT INTO locations (location, street, lat, long) VALUES (?, ?, ?, ?)''', (town, street, newdict['latitude'], newdict['longitude']))
+        conn.commit()
         return newdict
 
 def geocode(town, location, street):
@@ -87,7 +94,18 @@ def geocode(town, location, street):
     if street.endswith(' la'):
         street += 'ne'
 
-    fetchresult = fetchGeocode(street + ", " + location + " NY")
+    c.execute('''SELECT * FROM locations where location = ? and street = ?''', (location,street))
+    row = c.fetchone()
+
+    if  row == None:
+        print("Looking up on Googs!")
+        fetchresult = fetchGeocode(street + ", " + location + " NY", location, street)
+    else:
+        print("Pulling from DB!!")
+        fetchresult =   {'latitude': row[3],
+                    'longitude': row[4]}  
+
+    
     return fetchresult
 
 def tominutes(latlong):
@@ -130,7 +148,7 @@ if __name__ == '__main__':
 
     grid = {}
     array = []
-    for i in range(columns * rows):
+    for i in range(columns * rows + 1):
         array.append(0)
     
     try:
@@ -166,10 +184,10 @@ if __name__ == '__main__':
                                 curCol = getColumn(longitude)
                                 ledNum = 0
                                 # Fix weird orientation cause I'm extra dumb at soldering
-                                if curRow == 0 or curRow%2 == 0:
-                                    ledNum = ((curRow - 1) * columns) + (columns - curCol)
-                                else:
-                                    ledNum = ((curRow - 1) * columns) + columns
+                                #if curRow == 0 or curRow%2 == 0:
+                                ledNum = ((curRow - 1) * columns) + (columns - curCol)
+                                #else:
+                                #    ledNum = ((curRow - 1) * columns) + columns
                                 print ("Latitude: "+ str(streetinfo['latitude']))
                                 print ("Latitude Minutes: "+str(latitude))
                                 print ("Longitude: "+ str(streetinfo['longitude']))
@@ -181,7 +199,7 @@ if __name__ == '__main__':
                                 globalTotalOut += outageCust
                                 totalCust = float(streetdata['TotalCustomers'])
                                 percentageOut = int(math.floor((outageCust/totalCust) * 100))
-
+                                print( "LED number: "+ str(ledNum))
                                 if array[ledNum] > 0:
                                     array[ledNum] = (array[ledNum] + percentageOut) / 2
                                 else:
@@ -199,7 +217,7 @@ if __name__ == '__main__':
     for val in range(0, len(array)):
         sys.stdout.write(str(array[val])+" ")
 
-
+conn.close()
 
 
 
